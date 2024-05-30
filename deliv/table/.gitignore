@@ -1,0 +1,4 @@
+*.dvi
+*.aux
+*.log
+standalone-preview.tex

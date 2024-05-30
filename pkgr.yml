@@ -1,0 +1,39 @@
+Version: 1
+
+Packages:
+  - tidyverse
+  - here
+  - patchwork
+  - yspec
+  - pmtables
+  - pmplots
+  - bbr
+  - markdown
+  - rmarkdown
+  - mrgmisc
+  - pmforest
+  - mrggsave
+  - GGally
+  - pmparams
+  - latex2exp
+  - sessioninfo
+  - cowplot
+  - pmparams
+  - magick
+  - pdftools
+  
+Repos:
+  - pmparams_dev: https://s3.amazonaws.com/mpn.metworx.dev/releases/pmparams/0.1.0.9001
+  - MPN: https://mpn.metworx.com/snapshots/stable/2024-03-01
+  - bbr_dev: https://s3.amazonaws.com/mpn.metworx.dev/releases/bbr/1.10.0.8003
+  # - CRAN: https://cran.rstudio.com
+
+Customizations:
+  Packages:
+    - bbr:
+        Repo: bbr_dev
+        Suggests: true
+        
+Lockfile:
+    Type: renv
+

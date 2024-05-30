@@ -1,0 +1,35 @@
+\setlength{\tabcolsep}{5pt} 
+\begin{threeparttable}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}[h]{llllll}
+\hline
+ &  & Estimate & 95\% CI & Shrinkage (\%) & RSE (\%) \\
+\hline
+\multicolumn{6}{l}{\textbf{Interindividual variance parameters}}\\%--pmtables-insert-panel
+IIV-KA & $\Omega_{(1,1)}$ & 0.219 [CV\%=49.4] & 0.116, 0.322 & 14.4 & 24.0 \\
+IIV-V2/F & $\Omega_{(2,2)}$ & 0.0824 [CV\%=29.3] & 0.0631, 0.102 & 5.51 & 11.9 \\
+IIV-CL/F & $\Omega_{(3,3)}$ & 0.114 [CV\%=34.8] & 0.0893, 0.139 & 1.25 & 11.2 \\
+\hline \multicolumn{6}{l}{\textbf{Interindividual covariance parameters}}\\%--pmtables-insert-panel
+V2/F-KA & $\Omega_{(2,1)}$ & 0.0668 [Corr=0.498] & 0.0287, 0.105 & - & - \\
+CL/F-KA & $\Omega_{(3,1)}$ & 0.121 [Corr=0.767] & 0.0776, 0.165 & - & - \\
+CL/F-V2/F & $\Omega_{(3,2)}$ & 0.0704 [Corr=0.725] & 0.0524, 0.0884 & - & - \\
+\hline \multicolumn{6}{l}{\textbf{Residual variance}}\\%--pmtables-insert-panel
+Proportional & $\Sigma_{(1,1)}$ & 0.0399 [CV\%=20.0] & 0.0375, 0.0424 & 5.02 & 3.09 \\
+\hline
+\end{tabular}
+\end{threeparttable}
+ 
+\vspace{0.67cm}
+ 
+\begin{minipage}{1\linewidth}
+\linespread{1.1}\selectfont
+\rule{1\linewidth}{0.4pt}
+\vspace{0.02cm}
+CI: confidence intervals; Corr: correlation coefficient; CV: coefficient of variation; RSE: relative standard error; SE: standard error \newline
+Parameters estimated in the log-domain were back-transformed for clarity. \newline
+Confidence intervals = estimate $\pm$ 1.96 $\cdot$ SE \newline
+CV\% of log-normal omegas = sqrt(exp(estimate) - 1) $\cdot$ 100 \newline
+CV\% of sigma = sqrt(estimate) $\cdot$ 100 \newline
+Source code: parameter-table-final.R \newline
+Source file: 199-pk-params-random.png \newline
+\end{minipage}

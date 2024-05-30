@@ -1,0 +1,10 @@
+model_type: nonmem
+based_on:
+- '102'
+description: Two-compartment model with first-order absorption and linear elimination.
+  Effects of eGFR, age, and ALB on CL/F.
+notes:
+- Full covariate model
+- Copy of model 106 from Expo1
+star:
+- yes
