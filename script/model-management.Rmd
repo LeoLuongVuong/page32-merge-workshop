@@ -143,7 +143,7 @@ print(mod$description)
 
 ```{r}
 # optionally, add notes or tags before executing
-# mod <- mod %>% add_notes("<my note>")
+#mod <- mod %>% add_notes("")
 # mod <- mod %>% add_tags("<my tag>")
 ```
 
@@ -238,6 +238,18 @@ model_diagnostics(
 model_diff(mod) # compare to parent model
 ```
 
+```{r}
+# Check for parent model diagnostics and open if present, for comparison
+mod_to_compare <- PARENT_MODEL # change this to compare to other models
+
+path_to_compare <- glue::glue("{MOD_DIR}/{mod_to_compare}/diagnostics-quick-{mod_to_compare}.html")
+if (file.exists(path_to_compare)) {
+  browseURL(path_to_compare)
+} else {
+  message(glue::glue("No diagnostics output found at {path_to_compare}"))
+}
+```
+
 
 ## add post-execution model annotation
 
@@ -299,6 +311,18 @@ model_diagnostics(
     template = rmd_template_path
   ) %>%
   browseURL()
+```
+
+```{r}
+# Check for parent model diagnostics and open if present, for comparison
+mod_to_compare <- PARENT_MODEL # change this to compare to other models
+
+path_to_compare <- glue::glue("{MOD_DIR}/{mod_to_compare}/diagnostics-quick-{mod_to_compare}.html")
+if (file.exists(path_to_compare)) {
+  browseURL(path_to_compare)
+} else {
+  message(glue::glue("No diagnostics output found at {path_to_compare}"))
+}
 ```
 
 

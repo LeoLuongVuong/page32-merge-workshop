@@ -1,21 +1,8 @@
 local({
   
-  # Specify R version per project
-  R_VERSION <- "4.1"
-  
-  correct_r <- grepl(
-    paste0("R version ", R_VERSION),
-    R.version[["version.string"]], 
-    fixed = TRUE
-  )
-  
-  if (!correct_r) {
-    stop(paste0("This project only works with R ", R_VERSION), call. = FALSE)
-  }
-  
   options(
-    # set some bbr opinionated defaults, these won't impact users who don't use bbr
-    'bbr.bbi_exe_path' = file.path(getwd(), "bin", "bbi"),
+    # set this to use a custom version of bbi, which can be installed with bbr::use_bbi()
+    #'bbr.bbi_exe_path' = file.path(getwd(), "bin", "bbi"),
     
     # do not check that the project library is synced with lockfile on load
     renv.config.synchronized.check = FALSE,
@@ -77,9 +64,6 @@ local({
   }
   
   if (interactive()) {
-    # project info ------------------------------------------------------------
-    message("Project:   ", basename(getwd()))                                                                         
-    message("R version: ", R_VERSION)                                                                                 
     message("Library:   ", libpath_1)
     if(exists("repos_txt")){
       message("Repo(s):   ", repos_txt)

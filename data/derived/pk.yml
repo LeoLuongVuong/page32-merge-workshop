@@ -2,7 +2,6 @@ SETUP__:
   lookup_file: [lookup.yml]
   description: Example PopPK analysis data set
   sponsor: example-project
-  projectnumber: azn0702
   use_internal_db: true
   character_last: true
   comment_col: "C"

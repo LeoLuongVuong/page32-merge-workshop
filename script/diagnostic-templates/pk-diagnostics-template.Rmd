@@ -277,7 +277,7 @@ NPDEca <- spec %>%
   axis_col_labs(title_case = TRUE)    # converts yspec short to title_case 
 
 #p <- npde_covariate(data, NPDEca) + 
-npde_covariate(data, NPDEca) + 
+p <- npde_covariate(data, NPDEca) + 
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
 
 ```
