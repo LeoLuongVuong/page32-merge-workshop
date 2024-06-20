@@ -1,0 +1,5 @@
+model_type: nonmem
+based_on:
+- '100'
+model_path: 101.ctl
+description: Two-compartment model with first-order absorption and linear elimination.

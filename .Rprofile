@@ -64,6 +64,7 @@ local({
   }
   
   if (interactive()) {
+    message("Welcome to the PAGE32 MeRGE Workshop!")
     message("Library:   ", libpath_1)
     if(exists("repos_txt")){
       message("Repo(s):   ", repos_txt)

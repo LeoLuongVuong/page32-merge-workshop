@@ -1,35 +1,6 @@
 ##' Purpose: 
 ##' define functions that are called repeatedly while producing diagnostics
 ##' for model runs
-##' 
-
-##' map_wrap_eta_cont
-##' Purpose: plot ETA vs all continuous covariates
-##' @param  .map_etas character: name of ETA
-##' @param  .co       string: continuous covariate list
-##' @param  .id       dataframe: includes one record per id
-map_wrap_eta_cont <- function(.map_etas,.co,.id) {
-  .p <- wrap_eta_cont(
-    .id,
-    y = .map_etas,
-    x = .co,
-    use_labels = TRUE,
-    ncol = 2, scales= "free_x"
-  )
-}
-
-##' map_eta_cat
-##' Purpose: plot all ETAs vs a categorical covariate
-##' @param  .map_ca   character: name of a categorical covariate
-##' @param  .etas     string: ETA list
-##' @param  .id       dataframe: includes one record per id
-map_eta_cat <- function(.map_ca, .etas, .id) {
-  .p <- eta_cat(.id, x = .map_ca, y = .etas) %>% 
-    ## CHECK: depending on the labels, this may need to be changed 
-    purrr::map(~.x+rot_x(45)) %>% 
-    pm_grid
-}
-
 
 #' Render a model diagnostics template Rmd to HTML file
 #' 
@@ -37,12 +8,12 @@ map_eta_cat <- function(.map_ca, .etas, .id) {
 #' Users can modify these, or create their own templates. See "Details" section.
 #' 
 #' @details The only requirement for an `.Rmd` template to work with this
-#' function is that it is parameterized and expects a parameter called `run`
-#' (for the run number) and a parameter called `modelDir` (for the path to the
+#' function is that it is parameterized and expects a parameter called `model_run`
+#' (for the run number) and a parameter called `model_dir` (for the path to the
 #' directory containing the model files).
 #'
-#' To be clear, **users do _not_ need to pass through these `run` and
-#' `modelDir`** because they will be parsed internally.
+#' To be clear, **users do _not_ need to pass through these `model_run` and
+#' `model_dir`** because they will be parsed internally.
 #' 
 #' @return Invisibly returns the path to the rendered HTML file. This is 
 #' intended to make it easy to pipe into something like `browseURL()` for
@@ -58,10 +29,10 @@ map_eta_cat <- function(.map_ca, .etas, .id) {
 #' @param dest_dir Destination directory to write the rendered HTML into. If
 #'   `NULL`, the default, will render to `bbr::get_output_dir(.mod)`.
 model_diagnostics <- function(
-  .mod, 
-  .p = list(), 
-  template = here::here("script", "diagnostic-templates", "diagnostics-basic.Rmd"),
-  dest_dir = NULL
+    .mod, 
+    .p = setNames(list(), character(0)), 
+    template = here::here("scripts", "templates", "pk-diagnostics-quick.Rmd"),
+    dest_dir = NULL
 ) {
   if (inherits(.mod, "bbi_model")) {
     .mod <- .mod$absolute_model_path
@@ -76,19 +47,19 @@ model_diagnostics <- function(
   checkmate::assert_string(dest_dir, null.ok = TRUE)
   
   # extract model id and build paths
-  if (any(c("run", "modelDir", "script") %in% names(.p))) {
+  if (any(c("model_run", "model_dir", "script") %in% names(.p))) {
     warning(paste(
-      "No need to pass `run`, `modelDir`, or `script` into model_diagnostics() because they are inferred from function inputs.",
+      "No need to pass `model_run`, `model_dir`, or `script` into model_diagnostics() because they are inferred from function inputs.",
       "Passed values will be ignored."
     ))
   }
-  run <- basename(.mod)
-  .p$run <- run
-  .p$modelDir <- dirname(.mod)
+  model_run <- basename(.mod)
+  .p$model_run <- model_run
+  .p$model_dir <- dirname(.mod)
   .p$script <- basename(template)
   
   stem <- tools::file_path_sans_ext(basename(template))
-  html_file <- glue::glue("{stem}-{run}.html")
+  html_file <- glue::glue("{stem}-{model_run}.html")
   
   # if no destination dir passed, put in model output dir
   if (is.null(dest_dir)) {
@@ -100,7 +71,8 @@ model_diagnostics <- function(
     template,
     params = .p,
     output_dir = dest_dir,
-    output_file = html_file
+    output_file = html_file,
+    envir = new.env()
   )
   
   invisible(return(file.path(dest_dir, html_file)))

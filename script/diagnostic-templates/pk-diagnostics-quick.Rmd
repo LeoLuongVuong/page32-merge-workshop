@@ -1,17 +1,17 @@
 ---
-title: "`r paste(params$run, '- Quick-look Diagnostics')`"
+title: "`r paste(params$model_run, '- Quick-look Diagnostics')`"
 output: 
   html_document:
     toc: true
     toc_float: true
     depth: 2
 params:
-  run: 102
-  modelDir: "model/pk"
+  model_run: 100
+  model_dir: "model/pk"
   log_dv: FALSE
   excludeETAs: !r c() 
-  script: "diagnostics-quick.Rmd"
-  drugNameUnits: "concentration (mg/L)"
+  contCov: !r c() # continuous covariates to plot against ETAs
+  script: "pk-diagnostics-quick.Rmd"
 ---
 
 # Purpose
@@ -23,7 +23,7 @@ look at how your model fits the data.
 This template will **create an HTML preview** of some typical diagnostic plots.
 
 These plots are **not** intended to be report quality - please use the
-*pk-diagnostics-template.Rmd* template to create diagnostics suitable for your
+**`pk-diagnostics-report.Rmd`** template to create diagnostics suitable for your
 report.
 
 
@@ -62,36 +62,35 @@ source(here('script/functions/functions-diagnostics.R'))
 # Define `modelName` and path to this model directory
 
 # Set directories for bbr models ----------------------------
-modelName <- params$run
-thisModelPath <- file.path(params$modelDir, modelName)
+modelName <- params$model_run
+thisModelPath <- file.path(params$model_dir, modelName)
 ```
 
 
-# Model details - Run number: `r params$run`
+# Model details
+
+## Output summaries from bbr
+
+```{r modelOutputSummary, echo = FALSE, results = "asis"}
+summ <- mod %>% model_summary()
+summ
+```
+
+## Annotation and metadata from bbr
 
 ```{r modelDetails, echo = FALSE, results = "asis"}
-mod <- read_model(here::here(thisModelPath))
+mod <- read_model(here(thisModelPath))
 mod
 ```
 
-```{r modelOutputSummary, echo = FALSE, results = "asis"}
-sum <- mod %>% model_summary()
-sum
-```
-
-# Read in data
-
-Use `bbr::nm_join()` to read in the input data set and join to any tables
-that were written out by the model. **This assumes that a row number column (called `NUM`) was 
-included during data assembly.** The idea here is that in NONMEM, you table 
-just `NUM` and none of the other input data items. They all will get joined 
-back to the nonmem output ... even character columns.
 
 ```{r read_in_data, echo = FALSE, message=FALSE}
-# Read in model
-mod <- read_model(here::here(thisModelPath))
 
-# Get original dataset and nonmem output
+# Use `bbr::nm_join()` to read in the input data set and join to any tables that
+# were written out by the model. **This assumes that a row number column (called
+# `NUM`) was included during data assembly.** The idea here is that in NONMEM,
+# you table just `NUM` and none of the other input data items. They all will get
+# joined back to the nonmem output ... even character columns.
 data0 <- nm_join(mod)
 
 # filter to observation rows only
@@ -123,6 +122,9 @@ if(!is_null(params$excludeETAs)){
   etas = etas[which(!etas %in%  params$excludeETAs)]
 } 
 
+# check for covariates to plot against ETAs
+plotContCov <- length(params$contCov) > 0
+
 # filter to single row per ID and include factors 
 id <- distinct(data, ID, .keep_all=TRUE) 
 ```
@@ -130,77 +132,44 @@ id <- distinct(data, ID, .keep_all=TRUE)
 
 # General diagnostic plots
 
-The following plots assume that the preferred x-axis labels are defined here. 
-
 ```{r xAxis_label_names, echo = FALSE}
+# The following plots assume that the preferred x-axis labels are defined here. 
 xTIME <- pm_axis_time()
 xTAD <- pm_axis_tad()
-xPRED <- pm_axis_pred(xname = params$drugNameUnits)
+xPRED <- pm_axis_pred()
 ```
 
 ## DV vs PRED and IPRED 
 
-Create plots of DV vs PRED and IPRED for the full dataset 
+Plots of DV vs PRED and IPRED for the full dataset 
 
 ```{r DV_PRED_plots, echo = FALSE, message = FALSE}
 
-dvp <- dv_pred(data, yname = params$drugNameUnits) + margin      # DV vs PRED 
-dvip <- dv_ipred(data, yname = params$drugNameUnits) + margin    # DV vs IPRED 
+dvp <- dv_pred(data) + margin      # DV vs PRED 
+dvip <- dv_ipred(data) + margin    # DV vs IPRED 
 
 p <- dvp / dvip
 p
 rm(p, dvp, dvip)
 ```
 
+## CWRES vs PRED, time and time after dose
 
+```{r cwres_plots, echo = FALSE, message = FALSE}
+p <- cwres_panel(data)
+p
+rm(p)
+```
 
 ## NPDE plots
 
 NPDE vs PRED, time and time after dose.
 
 ```{r NPDE_plots, eval=plotNPDE, echo = FALSE, message=FALSE}
-##' Plan to display these three plots in a single, 3 panel figure and so the y-axis
-##' labels are removed manually for display purposes
-p1 <- npde_pred(data, x = xPRED, y = "NPDE //  ")
-p2 <- npde_time(data, x = xTIME)
-p3 <- npde_tad(data, x = xTAD, y = "NPDE //  ")
-p <- p1 / p2 / p3 
-p
-rm(p, p1, p2, p3)
-```
-
-
-## NPDE density histogram
-
-```{r npde_hist_plots, eval=plotNPDE, echo = FALSE, message = FALSE}
-p <- npde_hist(data)
+p <- npde_panel(data)
 p
 rm(p)
 ```
-
-
-## CWRES vs PRED, time and time after dose
-
-```{r cwres_plots, echo = FALSE, message = FALSE}
-p1 <- cwres_pred(data, x = xPRED, y = "CWRES //  ") 
-p2 <- cwres_time(data, x = xTIME) 
-p3 <- cwres_tad(data, x = xTAD, y = "CWRES //  ")
-p = p1 / p2 / p3
-p
-rm(p, p1, p2, p3)
-```
-
-
-
-## CWRES qq and density plot
-
-```{r qq_density_plots, echo = FALSE, message = FALSE}
-# using patchwork to combine plots
-p <- cwres_q(data) / cwres_hist(data)
-p
-rm(p)
-```
-
 
 
 # EBEs-based diagnostics
@@ -213,3 +182,16 @@ p
 rm(p)
 ```
 
+
+```{r eta_cont_cov_title, eval = plotContCov, echo = FALSE, results = "asis"}
+cat("## ETA vs continous covariates")
+```
+
+```{r eta_cont_cov, eval = plotContCov, echo = FALSE, message = FALSE}
+
+# Create plots with a single ETA and multiple covariates
+p <- eta_covariate(id, x = params$contCov, y = etas)
+p <- map(p, ~ .x + plot_layout(axes = "collect"))
+p
+rm(p)
+```

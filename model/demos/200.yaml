@@ -1,0 +1,11 @@
+model_type: nonmem
+based_on:
+- '102'
+description: Two-compartment model with first-order absorption and linear elimination.
+  Effects of eGFR, age, and ALB on CL/F.
+notes:
+- Intentionally more complex than necessary for demonstrating parallelization
+- Structurally the same as model 106 from Expo1
+bbi_args:
+  parallel: yes
+  threads: 4.0

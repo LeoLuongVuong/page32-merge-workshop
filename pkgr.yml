@@ -23,15 +23,12 @@ Packages:
   - pdftools
   
 Repos:
-  - pmparams_dev: https://s3.amazonaws.com/mpn.metworx.dev/releases/pmparams/0.1.0.9001
-  - MPN: https://mpn.metworx.com/snapshots/stable/2024-03-01
-  - bbr_dev: https://s3.amazonaws.com/mpn.metworx.dev/releases/bbr/1.10.0.8003
-  # - CRAN: https://cran.rstudio.com
+  - MPN: https://mpn.metworx.com/snapshots/stable/2024-06-12
+  # - CRAN: https://packagemanager.posit.co/cran/2024-06-12
 
 Customizations:
   Packages:
     - bbr:
-        Repo: bbr_dev
         Suggests: true
         
 Lockfile:

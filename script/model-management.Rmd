@@ -26,32 +26,46 @@ model, or by viewing them in the tibble returned from `run_log()`.
 
 ```{r setup}
 library(bbr)
+library(pmplots)
 library(tidyverse)
 library(here)
-library(pmplots)
-library(magrittr)
+library(glue)
 
 source(here("script/functions/bbr-helpers.R"))
 source(here("script/functions/functions-diagnostics.R"))
 
-# define model dir and load tags
-MOD_DIR <- here("model", "pk")
-spec_path <- here("data", "derived", "pk.yml")
-spec <- yspec::load_spec(spec_path)
+# define model dir
+modDir <- here("model", "pk")
 
 # Install bbi (once per user per project)
 # bbr::use_bbi(.path = getOption("bbr.bbi_exe_path"))
 
 # Initialize bbi (once per modeling directory)
-# bbi_init(MOD_DIR, .nonmem_dir = "/opt/NONMEM", .nonmem_version = "nm75")
+# bbi_init(modDir, .nonmem_dir = "/opt/NONMEM", .nonmem_version = "nm75")
 ```
 
+
+# Introduction: first model
+
+You will likely **only use this chunk once** to create your first model, 
+then you can comment it out.
+
+```{r}
+mod <- new_model(file.path(modDir, 100)) # create bbr object from control stream on disk
+mod <- add_description(mod, "one-compartment model")
+open_model_file(mod) # open control stream for preview/editing in RStudio
+```
+
+Once you have run this block, **skip ahead to section "3 - execute model"** below.
+
+As a reminder, **each subsequent time**, you will skip the chunk above and 
+**start with the run log chunk**.
 
 # 1 run log
 
 ```{r, eval=FALSE}
 rl_cols <- c("run","description","based_on","ofv", "dofv", "aic","notes", "error_msg")
-rl <- run_log(MOD_DIR) %>% 
+rl <- run_log(modDir) %>% 
   add_config() %>% suppressWarnings() %>%
   add_summary() %>%
   add_aic() %>%      # this is a custom function in script/functions/bbr-helpers.R
@@ -66,35 +80,44 @@ View(rl, "runlog")
 
 ## model iteration
 
+Create a new model, based on a "parent model" of your choice.
+
 ```{r, eval=FALSE}
-PARENT_MODEL <- 102 # Name of most recently completed model
-THIS_MODEL <- 103   # Name of new model to create (based on PARENT_MODEL)
+PARENT_MODEL <- 100 # Name of parent model to copy from (typically, most recently completed model)
+THIS_MODEL <- 101   # Name of new model to create (based on PARENT_MODEL)
 
-set.seed(240321) # for reproducibility of tweak_param_estimates(), below
+set.seed(240625) # for reproducibility of tweak_param_estimates(), below
 
-parent_mod <- read_model(file.path(MOD_DIR, PARENT_MODEL))
+parent_mod <- read_model(file.path(modDir, PARENT_MODEL))
 
 mod <- copy_model_from(
   .parent_mod=parent_mod, 
   .new_model=THIS_MODEL, # will increment, or pass custom name if desired
-  # .overwrite = TRUE,   # uncomment this line to overwrite existing THIS_MODEL
+  # .overwrite = TRUE,   # uncomment to overwrite existing THIS_MODEL
 ) %>%
-  update_model_id() %>%
-  inherit_param_estimates() %>%
-  tweak_initial_estimates()
-```
+  update_model_id() 
 
+# uncomment to inherit final estimates of parent as initial estimates of new model
+# mod <- mod %>%
+#   inherit_param_estimates() %>%
+#   tweak_initial_estimates()
+```
 
 ```{r}
-# compare control stream to parent model
-model_diff(mod)
+# this is only for demo purposes... we're pretending you made these modifications manually
+if (THIS_MODEL == 101) file.copy(here("model/demos/101.ctl"), modDir, overwrite = TRUE)
 ```
-
 
 ```{r}
 # open file for editing in RStudio
-open_model_file(mod) 
+open_model_file(mod)
 ```
+
+```{r}
+## compare control stream to parent model
+model_diff(mod)
+```
+
 
 ## add model annotation
 Annotating your models as you work enhances traceability and reproduceability.
@@ -136,17 +159,16 @@ print(parent_mod$description)
 ```{r}
 # uncomment the next line and fill in description of new model 
 #   to describe the basic model structure
-# mod <- add_description(mod, parent_mod$description)
+#mod <- add_description(mod, "two-compartment model")
 print(mod$description)
 ```
 
 
 ```{r}
 # optionally, add notes or tags before executing
-#mod <- mod %>% add_notes("")
+# mod <- mod %>% add_notes("added a 2nd cmpt")
 # mod <- mod %>% add_tags("<my tag>")
 ```
-
 
 # 3 execute model
 
@@ -162,7 +184,6 @@ submit_model(mod, .mode="local", .wait = FALSE) # or submit model to run on head
 ```{r, eval = FALSE}
 # check if run has finished
 check_nonmem_finished(mod)
-# wait_for_nonmem(mod) # optionally hold the R console until model finishes
 
 # print head and tail of output files to R console
 tail_lst(mod)
@@ -197,25 +218,27 @@ View(param_df)
 ```{r, eval=FALSE}
 # join input data to output tables
 df <- nm_join(mod) %>%
-  dplyr::filter(EVID == 0) %>% # Filter to only observation records
-  yspec::ys_add_factors(spec, .suffix = "") # Add factors to data set based on spec information
-View(df)
+  dplyr::filter(EVID == 0) # Filter to only observation records
+# View(df)
+```
+
+Make some simple diagnostic plots with MetrumRG's `pmplots` package
+
+```{r}
+dv_pred(df)
+dv_ipred(df)
+cwres_pred(df)
+cwres_time(df)
 ```
 
 ```{r}
-# make some simple diagnostic plots with MetrumRG's pmplots package
-dv_pred(df, yname = "concentration (mg/L)")
-dv_ipred(df, yname = "concentration (mg/L)")
-npde_time(df)
+wrap_eta_cont(
+  df,
+  x = c("WT", "ALB", "EGFR", "AGE"),
+  y = "ETA3",
+  scales = "free_x"
+)
 ```
-
-```{r}
-# add a covariate/ETA plot...
-
-# point them in the direction of getting towards model 104
-```
-
-
 
 ## render quick-look diagnostics 
 
@@ -226,7 +249,8 @@ npde_time(df)
 # * Pipe the HTML path directly to browseURL to pop open in browser
 model_diagnostics(
     mod,
-    template = here("script", "diagnostic-templates", "diagnostics-quick.Rmd")
+    #.p = list(contCov = c("WT", "ALB", "EGFR", "AGE")), # uncomment to plot ETAs vs cont. covariates
+    template = here("script", "diagnostic-templates", "pk-diagnostics-quick.Rmd")
   ) %>%
   browseURL()
 ```
@@ -234,19 +258,31 @@ model_diagnostics(
 
 ## compare two models
 
+```{r}
+mod_to_compare_name <- PARENT_MODEL # change this to compare to other models
+print(glue("Comparing {THIS_MODEL} to {mod_to_compare_name}"))
+```
+
 ```{r, eval=FALSE}
-model_diff(mod) # compare to parent model
+mod_to_compare <- read_model(file.path(modDir, mod_to_compare_name))
+model_diff(mod, mod_to_compare, .viewer = TRUE) # compare control streams
 ```
 
 ```{r}
-# Check for parent model diagnostics and open if present, for comparison
-mod_to_compare <- PARENT_MODEL # change this to compare to other models
+# compare parameter estimates and stderr
+# * Note: this only makes sense if your THETAs, etc. are the same
+#   in both models that you are comparing
+param_estimates_diff(mod, mod_to_compare)
+```
 
-path_to_compare <- glue::glue("{MOD_DIR}/{mod_to_compare}/diagnostics-quick-{mod_to_compare}.html")
+
+```{r}
+# Check for model diagnostics and open if present, for comparison
+path_to_compare <- glue("{modDir}/{mod_to_compare_name}/pk-diagnostics-quick-{mod_to_compare_name}.html")
 if (file.exists(path_to_compare)) {
   browseURL(path_to_compare)
 } else {
-  message(glue::glue("No diagnostics output found at {path_to_compare}"))
+  message(glue("No diagnostics output found at {path_to_compare}"))
 }
 ```
 
@@ -281,29 +317,35 @@ Review of relevant guidance from above:
 # mod <- add_star(mod)
 ```
 
+At this point, you may want to return to the "1 - run log" section to keep iterating on your model.
+
 ## render report-ready diagnostics
 
+* This section uses the "report-ready" diagnostics template: `pk-diagnostics-report.Rmd`
+* It uses the yspec YAML to pull information about covariates in the dataset
+* Optionally, it will write out individual PNG or PDF files for each figure
 
 ```{r, eval=FALSE}
-# Render diagnostics with a parameterized Rmd template
-# * This uses the "report-ready" diagnostics template
-# * It uses the yspec YAML to pull information about covariates in the dataset
-# * Optionally, it will write out individual PNG or PDF files for each figure
-rmd_template_path <- here("script", "diagnostic-templates", "pk-diagnostics-template.Rmd")
+rmd_template_path <- here("script", "diagnostic-templates", "pk-diagnostics-report.Rmd")
+
+# uncomment to open the Rmd template in RStudio
+# file.edit(rmd_template_path)
 
 # Define the specifics of your model or pass rendering options
-# * All available options are listed at the top of the template
-# * Use `file.edit(rmd_template_path)` to open the template in RStudio
+# * All available options are listed at the top of the Rmd template
+# * Any options _not_ specified here will use the default in the Rmd template
 modelSpecifics <- list(
-  run_mrggsave = FALSE,     # switch to TRUE to write out individual PNGs for each figure
-  yspec = here("data/derived/pk.yml"),      # The labels and units are pulled from this file
-  contCov = c("AGE","WT","ALB","EGFR"),     # Categorical covariates to plot
-  catCov = c("STUDY", "RF", "CP", "DOSE"),  # Continuous covariates to plot
-  etas = c("ETA1//ETA-KA", "ETA2//ETA-V/F", "ETA3//ETA-CL/F") # Map ETAs to names with "<eta>//<name>" pmplots syntax
+  run_mrggsave = FALSE,  # switch to TRUE to write out individual PNGs for each figure
+  log_dv = FALSE,        # switch to TRUE if DV was estimated in the log domain
+  eta_names = c(         # Map ETAs to names with "<eta>//<name>" pmplots syntax
+    "ETA1//ETA-KA", 
+    "ETA2//ETA-V/F", 
+    "ETA3//ETA-CL/F"
+  )
 )
 
 # pass the model object (or path), modelSpecifics and template locations to our
-# helper function and pipe the output directly to browseURL to pop open the html
+# helper function and pipe the output directly to browseURL to pop open the HTML
 # version in new browser window
 model_diagnostics(
     mod,
@@ -314,17 +356,14 @@ model_diagnostics(
 ```
 
 ```{r}
-# Check for parent model diagnostics and open if present, for comparison
-mod_to_compare <- PARENT_MODEL # change this to compare to other models
-
-path_to_compare <- glue::glue("{MOD_DIR}/{mod_to_compare}/diagnostics-quick-{mod_to_compare}.html")
+# Check for report-ready diagnostics and open if present, for comparison
+path_to_compare <- glue("{modDir}/{mod_to_compare_name}/pk-diagnostics-report-{mod_to_compare_name}.html")
 if (file.exists(path_to_compare)) {
   browseURL(path_to_compare)
 } else {
-  message(glue::glue("No diagnostics output found at {path_to_compare}"))
+  message(glue("No diagnostics output found at {path_to_compare}"))
 }
 ```
-
 
 # 5 assorted utility code
 
@@ -335,27 +374,8 @@ if (file.exists(path_to_compare)) {
 ```{r, eval=FALSE}
 # this will overwrite previous run output from the specified models
 mods_to_run <- 106:200
-map(mods_to_run, ~read_model(file.path(MOD_DIR,.x))) %>% 
+map(mods_to_run, ~read_model(file.path(modDir,.x))) %>% 
   submit_models(.bbi_args=list(overwrite=TRUE, parallel = TRUE, threads = 8))
-```
-
-## tags
-
-### print all currently used tags
-
-```{r}
-run_log(MOD_DIR) %>% 
-  pull(tags) %>% 
-  unlist() %>% 
-  unique() 
-```
-
-### apply tag to many models
-
-```{r, eval=FALSE}
-mods_to_tag <- 106:200
-walk(mods_to_tag, ~read_model(file.path(MOD_DIR,.x)) %>% 
-      add_tags("<my tag>"))
 ```
 
 ## open model files
@@ -364,6 +384,6 @@ walk(mods_to_tag, ~read_model(file.path(MOD_DIR,.x)) %>%
 
 ```{r, eval=FALSE}
 mods_to_open <- 106:200
-walk(mods_to_open, ~read_model(file.path(MOD_DIR,.x)) %>% 
+walk(mods_to_open, ~read_model(file.path(modDir,.x)) %>% 
       open_model_file())
 ```
