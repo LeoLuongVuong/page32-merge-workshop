@@ -4,8 +4,13 @@
 ##
 ## * Creates report-ready parameter tables with transformed parameters specified
 ##  by yaml style parameter key.
+##
 ## * Automatically generates '.png' and '.tex' files of formatted parameter tables 
 ##  and saves to 'deliv/table/model_name'.
+##
+## * NOTE: this repo does not have any pre-run models in it. Go to 
+##  `script/model-management.Rmd` to create and run models, _before_ working
+##  through this script.
 ################################################################################
 
 ### Packages ----------------------------
@@ -19,24 +24,36 @@ library(glue)
 
 
 ### Model run ----------------------------
-THIS_MODEL = 199   # Covariate model
+THIS_MODEL <- 199   # Covariate model
+
+# NOTE: to run this script, you will need to do _either_
+#
+# * run the script model/demos/copy-demo-model.R to copy
+#  and execute model 199, OR
+#
+# * set THIS_MODEL to one of the models you created in
+#  `script/model-management.Rmd` and modify the parameter
+#  key YAML file accordingly
+
+### Directories ----------------------------
+modDir <- here("model", "pk")                # define model directory
+tabDir <- here("deliv", "table", THIS_MODEL)  # saves to subfolder with model name
+if(!dir.exists(tabDir)) dir.create(tabDir)    # creates folder if it does not exist
+
+# Set table options ------------------------
+options(mrg.script = "parameter-table-final.R",   # name of this script
+              pmtables.dir = tabDir) 
 
 ### Parameter key yaml file --------------
 key <- here("script", "pk-parameter-key.yaml")  
 
-
-### Directories ----------------------------
-MOD_DIR <- here("model", "pk")                # define model directory
-TAB_DIR <- here("deliv", "table", THIS_MODEL)  # saves to subfolder with model name
-if(!dir.exists(TAB_DIR)) dir.create(TAB_DIR)    # creates folder if it does not exist
-
-# Set table options ------------------------
-options(mrg.script = "parameter-table-final.R",   # name of this script
-              pmtables.dir = TAB_DIR) 
-
+# open parameter key in RStudio
+# * check that it matches your model structure
+# * make any necessary edits
+file.edit(key)
 
 # Read in base model and format output in dataframe ----------------------------
-sum <- read_model(here(MOD_DIR, THIS_MODEL)) %>%   
+sum <- read_model(here(modDir, THIS_MODEL)) %>%   
   model_summary()  # shows quick model summary 
 
 # To see all raw model parameters
@@ -64,7 +81,7 @@ fixed = param_df %>%
            ) %>%
   st_files(output = glue("{THIS_MODEL}-pk-params-fixed.png")) %>%   # specify source file name to be printed in footnotes
   stable() %T>% 
-  st_aspng(dir = TAB_DIR, stem = glue("{THIS_MODEL}-pk-params-fixed")) # saves .png to TAB_DIR
+  st_aspng(dir = tabDir, stem = glue("{THIS_MODEL}-pk-params-fixed")) # saves .png to tabDir
 
 fixed %>% st_as_image() 
 
@@ -81,7 +98,7 @@ random = param_df %>%
            param_notes()$cvSigmaEq) %>%
   st_files(output = glue("{THIS_MODEL}-pk-params-random.png")) %>%   # specify source file name to be printed in footnotes
   stable() %T>%          
-  st_aspng(dir = TAB_DIR, stem = glue("{THIS_MODEL}-pk-params-random")) # saves .png to TAB_DIR
+  st_aspng(dir = tabDir, stem = glue("{THIS_MODEL}-pk-params-random")) # saves .png to tabDir
 
 random %>% st_as_image() 
 

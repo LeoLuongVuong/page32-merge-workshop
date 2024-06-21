@@ -240,7 +240,7 @@ NPDE vs continuous covariates
 NPDEco <- spec %>% 
   ys_select(any_of(contCov)) %>%      # select the covariates of interest
   axis_col_labs(title_case = TRUE,   # converts yspec short to title_case 
-                short_max = 10) %>%  # if yspec short is >10 characters it keeps the abbreviation
+                short_max = 15) %>%  # if yspec short is >15 characters it keeps the abbreviation
   as.list()
 
 pList <- map(NPDEco, ~ npde_cont(data, x = .x))

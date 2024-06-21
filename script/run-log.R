@@ -4,6 +4,10 @@
 ## * This file creates a run log in table format for evaluation of 
 ## key models of interest
 ##
+## * NOTE: this repo does not have any pre-run models in it. Go to 
+##  `script/model-management.Rmd` to create and run models, _before_ working
+##  through this script.
+##
 ################################################################################
 
 library(bbr)
@@ -14,12 +18,12 @@ library(tidyverse)
 library(pmtables)
 library(glue)
 
-MOD_DIR <- here("model", "pk")
-TAB_DIR <- here("deliv", "table")
-if(!file.exists(TAB_DIR)) dir.create(TAB_DIR)
+modDir <- here("model", "pk")
+tabDir <- here("deliv", "table")
+if(!file.exists(tabDir)) dir.create(tabDir)
 
 THIS_SCRIPT = 'run-log.R'
-options(pmtables.dir = TAB_DIR)
+options(pmtables.dir = tabDir)
 
 
 # Define footnotes --------------------------------------------------------
@@ -29,22 +33,22 @@ footnote_abbrev ="OFV = objective function value;\n
 
 ##################################
 # View ALL runs in designated model
-# directory (MOD_DIR)
+# directory (modDir)
 ##################################
 
-current_runs <- run_log(MOD_DIR) %>% 
+current_runs <- run_log(modDir) %>% 
   select(run, star, description, everything(), -absolute_model_path)
 View(current_runs) # pops open window with basic bbr run log summary
 
 # NOTE: if there are additional models in 'current_runs' you'd like 
 # to add to the run log that are not yet starred, do that now using:
-# mod <- read_model(MOD_DIR, 102)
+# mod <- read_model(modDir, 102)
 # mod <- mod %>% add_star()
 
 ##################################
 # Filter to "starred" runs
 ##################################
-key_runs <- run_log(MOD_DIR) %>% filter(star==T) 
+key_runs <- run_log(modDir) %>% filter(star==T) 
 # View key run numbers to make sure all desired runs are included
 key_runs$run
 
@@ -84,6 +88,6 @@ runlog_tab <- runlog_df %>%
          r_file = THIS_SCRIPT, # prints source script on table image for traceability
          notes = c(footnote_abbrev)) %T>%  # customize additional footnotes here
   as_lscape() %T>% # make landscape
-  st_aspng(dir=TAB_DIR, stem = "model-run-log") # save out as .png
+  st_aspng(dir=tabDir, stem = "model-run-log") # save out as .png
 
 runlog_tab %>% st_as_image()
