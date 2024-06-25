@@ -31,7 +31,7 @@ library(tidyverse)
 library(here)
 library(glue)
 
-source(here("script/functions/bbr-helpers.R"))
+source(here("script/functions/bbr-helpers.R")) # check this out
 source(here("script/functions/functions-diagnostics.R"))
 
 # define model dir
@@ -42,6 +42,8 @@ modDir <- here("model", "pk")
 
 # Initialize bbi (once per modeling directory)
 # bbi_init(modDir, .nonmem_dir = "/opt/NONMEM", .nonmem_version = "nm75")
+
+# email Metrum to set this up
 ```
 
 
@@ -74,6 +76,8 @@ rl <- run_log(modDir) %>%
   select(c(all_of(rl_cols)), contains("has_changed"))
 
 View(rl, "runlog")
+
+# keep the log/record of what models that you've run so far
 ```
 
 # 2 create models
@@ -83,8 +87,8 @@ View(rl, "runlog")
 Create a new model, based on a "parent model" of your choice.
 
 ```{r, eval=FALSE}
-PARENT_MODEL <- 100 # Name of parent model to copy from (typically, most recently completed model)
-THIS_MODEL <- 101   # Name of new model to create (based on PARENT_MODEL)
+PARENT_MODEL <- 101 # Name of parent model to copy from (typically, most recently completed model)
+THIS_MODEL <- 102   # Name of new model to create (based on PARENT_MODEL)
 
 set.seed(240625) # for reproducibility of tweak_initial_estimates(), below
 
@@ -98,9 +102,10 @@ mod <- copy_model_from(
   update_model_id() 
 
 # uncomment to inherit final estimates of parent as initial estimates of new model
-# mod <- mod %>%
-#   inherit_param_estimates() %>%
-#   tweak_initial_estimates()
+mod <- mod %>%
+  inherit_param_estimates() %>%
+  tweak_initial_estimates()
+# ctrl + shift + c shortcut: comment/uncomment
 ```
 
 ```{r}
@@ -116,6 +121,7 @@ open_model_file(mod)
 ```{r}
 ## compare control stream to parent model
 model_diff(mod)
+# model diff - can pass and compare two arbitrary models
 ```
 
 
@@ -159,14 +165,14 @@ print(parent_mod$description)
 ```{r}
 # uncomment the next line and fill in description of new model 
 #   to describe the basic model structure
-#mod <- add_description(mod, "two-compartment model")
+mod <- add_description(mod, "Copy model 101")
 print(mod$description)
 ```
 
 
 ```{r}
 # optionally, add notes or tags before executing
-# mod <- mod %>% add_notes("added a 2nd cmpt")
+mod <- mod %>% add_notes("Model 101 copied")
 # mod <- mod %>% add_tags("<my tag>")
 ```
 
@@ -220,6 +226,7 @@ View(param_df)
 df <- nm_join(mod) %>%
   dplyr::filter(EVID == 0) # Filter to only observation records
 # View(df)
+# merge input with output datasets
 ```
 
 Make some simple diagnostic plots with MetrumRG's `pmplots` package
@@ -235,7 +242,7 @@ cwres_time(df)
 wrap_eta_cont(
   df,
   x = c("WT", "ALB", "EGFR", "AGE"),
-  y = "ETA3",
+  y = "ETA2",
   scales = "free_x"
 )
 ```
@@ -249,10 +256,11 @@ wrap_eta_cont(
 # * Pipe the HTML path directly to browseURL to pop open in browser
 model_diagnostics(
     mod,
-    #.p = list(contCov = c("WT", "ALB", "EGFR", "AGE")), # uncomment to plot ETAs vs cont. covariates
+    .p = list(contCov = c("WT", "ALB", "EGFR", "AGE")), # uncomment to plot ETAs vs cont. covariates
     template = here("script", "diagnostic-templates", "pk-diagnostics-quick.Rmd")
   ) %>%
   browseURL()
+# "here" package is a great one to point to the directory.
 ```
 
 
@@ -263,7 +271,7 @@ mod_to_compare_name <- PARENT_MODEL # change this to compare to other models
 print(glue("Comparing {THIS_MODEL} to {mod_to_compare_name}"))
 ```
 
-```{r, eval=FALSE}
+```{r, eval=FALSE, results = 'asis'}
 mod_to_compare <- read_model(file.path(modDir, mod_to_compare_name))
 model_diff(mod, mod_to_compare, .viewer = TRUE) # compare control streams
 ```
@@ -310,7 +318,7 @@ Review of relevant guidance from above:
 # * key decision points
 # * notes on model performance
 # * notable changes from parent model
-# mod <- add_notes(mod, "<notes on new model>")
+mod <- add_notes(mod, "I noticed CWRES changed")
 
 # IF this is a key model that we want to include in the report, 
 #   uncomment the next line to add a "star" to it
@@ -329,13 +337,14 @@ At this point, you may want to return to the "1 - run log" section to keep itera
 rmd_template_path <- here("script", "diagnostic-templates", "pk-diagnostics-report.Rmd")
 
 # uncomment to open the Rmd template in RStudio
-# file.edit(rmd_template_path)
+file.edit(rmd_template_path)
 
 # Define the specifics of your model or pass rendering options
 # * All available options are listed at the top of the Rmd template
 # * Any options _not_ specified here will use the default in the Rmd template
 modelSpecifics <- list(
-  run_mrggsave = FALSE,  # switch to TRUE to write out individual PNGs for each figure
+  run_mrggsave = TRUE,  # switch to TRUE to write out individual PNGs for each figure
+  # very minimal ggsave .png function
   log_dv = FALSE,        # switch to TRUE if DV was estimated in the log domain
   eta_names = c(         # Map ETAs to names with "<eta>//<name>" pmplots syntax
     "ETA1//ETA-KA", 
@@ -353,6 +362,7 @@ model_diagnostics(
     template = rmd_template_path
   ) %>%
   browseURL()
+# change the .yml file, from estimated GFR to eGFR
 ```
 
 ```{r}
