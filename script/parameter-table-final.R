@@ -56,6 +56,9 @@ file.edit(key)
 sum <- read_model(here(modDir, THIS_MODEL)) %>%   
   model_summary()  # shows quick model summary 
 
+sum <- read_model("./model/pk/199") %>%   
+  model_summary() 
+
 # To see all raw model parameters
 sum %>% param_estimates()
 
